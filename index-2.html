@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚽ Copa 2026 — Álbum de Figurinhas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#050c1a;color:#e8f0fe;font-family:'Outfit',system-ui,sans-serif;min-height:100vh}
+#app{max-width:720px;margin:0 auto;padding-bottom:60px;transition:padding-bottom .2s}
+#app.editing{padding-bottom:90px}
+.header{background:linear-gradient(160deg,#071428,#040c1c);border-bottom:2px solid #1a2f4a;padding:16px 16px 14px}
+.header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.title{font-size:23px;font-weight:800;letter-spacing:.5px;line-height:1.1}
+.subtitle{color:#3a6a8a;font-size:11px;margin-top:2px;letter-spacing:.5px}
+.stats-row{display:flex;gap:16px;margin-top:7px;font-size:11px}
+.stat-green{color:#00c853;font-weight:600}
+.stat-red{color:#ff6b6b;font-weight:600}
+.stat-gold{color:#ffd700;font-weight:600}
+.bar-wrap{height:10px;background:#1a2f4a;border-radius:5px;overflow:hidden}
+.bar-fill{height:100%;background:#00c853;border-radius:5px;transition:width .4s ease}
+.bar-pct{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+.input-area{padding:13px 16px;border-bottom:1px solid #1a2f4a;background:#070e1d}
+.input-row{display:flex;gap:8px}
+input[type=text]{flex:1;background:#0d1b2e;border:1px solid #1a2f4a;border-radius:9px;padding:10px 14px;color:#e8f0fe;font-size:14px;outline:none;font-family:inherit;transition:border-color .2s}
+input[type=text]:focus{border-color:#00c853}
+.btn-add{background:linear-gradient(135deg,#00c853,#00a040);border:none;border-radius:9px;color:#000;font-weight:800;padding:10px 18px;cursor:pointer;font-size:14px;font-family:inherit;white-space:nowrap}
+.btn-add:hover{opacity:.9}
+.hint{margin-top:5px;color:#243a52;font-size:10px;line-height:1.5}
+.toast{margin-top:8px;padding:7px 12px;border-radius:7px;font-size:12px;font-weight:700}
+.toast-new{background:#00c85318;border:1px solid #00c85355;color:#00c853}
+.toast-dup{background:#ffd70018;border:1px solid #ffd70055;color:#ffd700}
+.toast-err{background:#ff555518;border:1px solid #ff555555;color:#ff5555}
+.tabs{display:flex;border-bottom:1px solid #1a2f4a;background:#070e1d;position:sticky;top:0;z-index:10}
+.tab-btn{flex:1;padding:11px 4px;background:none;border:none;border-bottom:2px solid transparent;color:#3a5a7a;cursor:pointer;font-size:12px;font-family:inherit;font-weight:400;transition:color .2s;white-space:nowrap}
+.tab-btn.active{border-bottom-color:#00c853;color:#e8f0fe;font-weight:700}
+/* Log */
+.log-header{color:#5a7a9a;font-size:12px;margin-bottom:14px}
+.log-list{display:flex;flex-direction:column;gap:6px}
+.log-item{display:flex;align-items:center;gap:10px;background:#0d1b2e;border:1px solid #1a2f4a;border-radius:8px;padding:10px 12px}
+.log-code{color:#e8f0fe;font-family:monospace;font-weight:700;font-size:14px;flex:1}
+.log-time{color:#5a7a9a;font-size:12px;font-family:monospace}
+.log-undo{background:none;border:1px solid #1a2f4a;color:#ffd700;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:14px;font-weight:700;line-height:1}
+.log-undo:hover{border-color:#ffd700;background:#1f1400}
+.content{padding:16px}
+.group-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #1a2f4a}
+.group-badge{background:#1a3a5a;color:#5a9abf;font-size:10px;font-weight:800;letter-spacing:1.5px;padding:2px 8px;border-radius:4px}
+.group-count{color:#2a4a6a;font-size:10px}
+.group-wrap{margin-bottom:20px}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:6px}
+.country-card{background:#0d1b2e;border:1px solid #1a2f4a;border-radius:8px;padding:9px 11px;cursor:pointer;display:flex;align-items:center;gap:9px;transition:transform .15s}
+.country-card:hover{transform:translateY(-1px)}
+.country-card.complete{background:#002a18;border-color:#00c853}
+.card-flag{font-size:20px;min-width:24px;text-align:center}
+.card-info{flex:1;min-width:0}
+.card-name{color:#e8f0fe;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.mini-bar{height:4px;background:#1a2f4a;border-radius:2px;overflow:hidden}
+.mini-fill{height:100%;background:#00c853;border-radius:2px;transition:width .3s}
+.mini-fill.full{background:#00e676}
+.card-meta{font-size:10px;margin-top:3px;color:#5a7a9a;display:flex;gap:8px}
+.meta-gold{color:#ffd700}
+.meta-red{color:#ff6b6b}
+.card-check{color:#00e676;font-size:16px;flex-shrink:0}
+.missing-item{background:#0d1b2e;border:1px solid #1a2f4a;border-radius:8px;padding:11px;margin-bottom:7px;cursor:pointer}
+.missing-header{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.missing-flag{font-size:17px}
+.missing-name{color:#e8f0fe;font-weight:600;font-size:13px}
+.missing-count{color:#ff6b6b;font-size:11px;margin-left:auto;font-weight:700;background:#2a0d0d;padding:2px 7px;border-radius:10px}
+.missing-chips{display:flex;flex-wrap:wrap;gap:4px}
+.missing-chip{background:#0a1820;color:#5a7a9a;border:1px solid #1a2f4a;border-radius:4px;padding:2px 6px;font-size:10px;font-family:monospace}
+.dup-wrap{display:flex;flex-wrap:wrap;gap:7px}
+.dup-country{margin-bottom:14px}
+.dup-country-header{display:flex;align-items:center;gap:8px;padding:9px 11px;background:#0d1b2e;border:1px solid #1a2f4a;border-radius:8px 8px 0 0;border-bottom:none;cursor:pointer;transition:background .15s}
+.dup-country-header:hover{background:#101f35}
+.dup-flag{font-size:17px}
+.dup-name{color:#e8f0fe;font-weight:600;font-size:13px;flex:1}
+.dup-country-count{color:#ffd700;font-size:11px;font-weight:700;background:#2a2000;padding:2px 8px;border-radius:10px}
+.dup-country .dup-wrap{padding:9px;background:#0a1525;border:1px solid #1a2f4a;border-top:none;border-radius:0 0 8px 8px}
+.dup-item{display:flex;align-items:center;gap:6px;background:#1a1000;border:1px solid #5a4000;border-radius:8px;padding:6px 10px}
+.dup-code{color:#ffd700;font-weight:700;font-size:13px;font-family:monospace}
+.dup-badge{background:#2a2000;color:#c8a000;font-size:10px;padding:1px 5px;border-radius:10px;font-weight:700}
+.btn-minus{background:none;border:1px solid #3a2a00;border-radius:4px;color:#ff8888;cursor:pointer;font-size:13px;padding:0 4px;line-height:1;font-weight:700}
+.btn-minus:hover{background:#2a0000}
+.empty-state{text-align:center;padding:50px 0;color:#5a7a9a}
+.empty-icon{font-size:52px}
+.empty-title{margin-top:12px;font-size:15px}
+.empty-sub{font-size:12px;margin-top:6px;color:#3a5a7a}
+.btn-reset{background:none;border:1px solid #1a2f4a;color:#3a5a7a;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;font-family:inherit}
+.header-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.btn-export,.btn-import{background:none;border:1px solid #1a2f4a;color:#5a9abf;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;font-family:inherit;text-decoration:none;display:inline-block}
+.btn-export:hover,.btn-import:hover,.btn-reset:hover{border-color:#00c853;color:#e8f0fe}
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,3,12,.88);display:flex;align-items:center;justify-content:center;z-index:100;padding:12px;backdrop-filter:blur(4px)}
+.modal-box{background:#0d1b2e;border:1px solid #1e3a5f;border-radius:14px;padding:20px;width:100%;max-width:460px;max-height:85vh;overflow-y:auto}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.modal-info{display:flex;align-items:center;gap:10px}
+.modal-flag{font-size:26px}
+.modal-name{color:#e8f0fe;font-weight:700;font-size:15px}
+.modal-sub{color:#7090b0;font-size:11px}
+.btn-close{background:none;border:none;color:#7090b0;cursor:pointer;font-size:20px;line-height:1;padding:4px}
+.chip-hint{font-size:10px;color:#3a5a7a;margin:14px 0 8px}
+.chips-grid{display:flex;flex-wrap:wrap;gap:5px}
+.chip{position:relative;width:34px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;font-weight:bold;font-family:monospace;user-select:none;border:1px solid}
+.chip-missing{background:#0b1525;color:#2a4a6a;border-color:#1a2a3a}
+.chip-collected{background:#002515;color:#00e676;border-color:#00c853}
+.chip-dup{background:#1f1500;color:#ffd700;border-color:#c8a000;cursor:pointer}
+.chip-badge{position:absolute;top:-5px;right:-5px;background:#ffd700;color:#000;width:13px;height:13px;border-radius:50%;font-size:8px;font-weight:bold;display:flex;align-items:center;justify-content:center;line-height:1}
+.modal-missing{margin-top:14px;padding:10px;background:#07111f;border-radius:8px}
+.modal-missing-label{color:#ff6b6b;font-size:11px;font-weight:600}
+.modal-missing-codes{color:#5a7a9a;font-size:11px;font-family:monospace}
+.modal-dups{margin-top:8px;padding:10px;background:#1f1400;border-radius:8px}
+.modal-dups-label{color:#ffd700;font-size:11px;font-weight:600}
+.modal-dups-codes{color:#8a7040;font-size:11px;font-family:monospace}
+/* Reset dialog */
+.dialog-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:200}
+.dialog-box{background:#0d1b2e;border:2px solid #ff444466;border-radius:14px;padding:28px;max-width:300px;text-align:center}
+.dialog-icon{font-size:38px;margin-bottom:10px}
+.dialog-title{font-weight:800;font-size:16px;margin-bottom:6px}
+.dialog-text{color:#5a7a9a;font-size:13px;margin-bottom:20px;line-height:1.5}
+.dialog-btns{display:flex;gap:10px;justify-content:center}
+.btn-cancel{background:#1a2f4a;border:none;border-radius:8px;color:#e8f0fe;padding:10px 20px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600}
+.btn-danger{background:#cc3333;border:none;border-radius:8px;color:#fff;padding:10px 20px;cursor:pointer;font-weight:800;font-family:inherit;font-size:13px}
+.missing-section-header{color:#5a7a9a;font-size:12px;margin-bottom:14px}
+.missing-section-header span{color:#ff6b6b;font-weight:700}
+.rep-header{color:#5a7a9a;font-size:12px;margin-bottom:14px}
+.rep-header span{color:#ffd700;font-weight:700}
+/* Share bar */
+.share-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.btn-share{background:#0d1b2e;border:1px solid #1a3a5a;color:#5a9abf;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all .2s}
+.btn-share:hover{border-color:#00c853;color:#e8f0fe}
+.btn-share.primary{background:linear-gradient(135deg,#00c853,#00a040);border-color:transparent;color:#000;font-weight:800}
+.btn-share.primary:hover{opacity:.9;color:#000}
+/* Share preview modal */
+.share-preview{background:#07111f;border:1px solid #1a2f4a;border-radius:10px;padding:14px;max-height:50vh;overflow-y:auto;font-family:'SF Mono',Menlo,Consolas,monospace;font-size:12px;color:#b0c4d8;white-space:pre-wrap;line-height:1.55;margin-top:12px;text-align:left}
+.share-actions{display:flex;gap:8px;margin-top:14px}
+.share-actions .btn-share{flex:1;justify-content:center}
+/* Edit mode */
+.edit-hint{color:#7090b0;font-size:11px;align-self:center;font-style:italic}
+.missing-chip.picked{background:#002515;color:#00e676;border-color:#00c853;font-weight:700}
+.chip-pickable{cursor:pointer}
+.chip-pickable:hover{border-color:#00c853;color:#00c853}
+.chip-picked{background:#002515;color:#00e676;border-color:#00c853;cursor:pointer}
+.edit-bar{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(180deg,#0a1525,#040c1c);border-top:2px solid #00c853;padding:12px 16px;display:flex;align-items:center;gap:10px;z-index:50;box-shadow:0 -8px 24px rgba(0,200,83,.15)}
+.edit-bar-info{flex:1;color:#e8f0fe;font-size:13px;font-weight:600}
+.edit-bar-count{color:#00e676;font-size:18px;font-weight:800;margin-right:4px}
+.edit-bar-cancel{background:#1a2f4a;border:none;border-radius:8px;color:#e8f0fe;padding:9px 16px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600}
+.edit-bar-save{background:linear-gradient(135deg,#00c853,#00a040);border:none;border-radius:8px;color:#000;padding:9px 18px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:800}
+.edit-bar-save:disabled{background:#1a2f4a;color:#5a7a9a;cursor:not-allowed}
+.edit-bar-save:not(:disabled):hover{opacity:.9}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="title">⚽ COPA DO MUNDO 2026</div>
+        <div class="subtitle">CONTROLE DE FIGURINHAS · 1033 TOTAL</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-export" onclick="exportData()" title="Baixar um backup JSON">Backup</button>
+        <label class="btn-import" for="import-file" title="Importar backup JSON">Importar</label>
+        <input id="import-file" type="file" accept="application/json,.json" style="display:none" onchange="importData(this.files[0]); this.value=''">
+        <button class="btn-reset" onclick="showResetDialog()">Resetar</button>
+      </div>
+    </div>
+    <div>
+      <div class="bar-pct">
+        <span id="hdr-count" style="font-weight:700">0 / 1033 figurinhas</span>
+        <span id="hdr-pct" style="color:#7090b0;font-weight:600">0% completo</span>
+      </div>
+      <div class="bar-wrap"><div class="bar-fill" id="main-bar" style="width:0%"></div></div>
+      <div class="stats-row">
+        <span class="stat-green" id="stat-col">✓ 0 coletadas</span>
+        <span class="stat-red" id="stat-miss">✕ 1033 faltando</span>
+        <span class="stat-gold" id="stat-dup">⟳ 0 repetidas</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-row">
+      <input type="text" id="sticker-input" placeholder="Ex: BRA1, MEX00, FWC9, CC3" onkeydown="if(event.key==='Enter')addSticker()">
+      <button class="btn-add" onclick="addSticker()">+ Adicionar</button>
+    </div>
+    <div id="toast-area"></div>
+    <div class="hint">Países: código (BRA, MEX, GER…) + número 00–20 &nbsp;·&nbsp; FWC9–FWC19 &nbsp;·&nbsp; CC1–CC14</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-album" onclick="setTab('album')">📖 Álbum</button>
+    <button class="tab-btn" id="tab-faltantes" onclick="setTab('faltantes')">❌ Faltantes</button>
+    <button class="tab-btn" id="tab-repetidas" onclick="setTab('repetidas')">🔄 Repetidas</button>
+    <button class="tab-btn" id="tab-log" onclick="setTab('log')">📜 Log</button>
+  </div>
+
+  <div class="content" id="content"></div>
+</div>
+
+<!-- Modals injected dynamically -->
+<div id="modal-area"></div>
+
+<script>
+// ─── DATA ──────────────────────────────────────────────────────
+const GROUPS = [
+  {n:"A",countries:[{code:"MEX",name:"México",flag:"🇲🇽"},{code:"RSA",name:"África do Sul",flag:"🇿🇦"},{code:"KOR",name:"Coréia do Sul",flag:"🇰🇷"},{code:"CZE",name:"Rep. Tcheca",flag:"🇨🇿"}]},
+  {n:"B",countries:[{code:"CAN",name:"Canadá",flag:"🇨🇦"},{code:"BIH",name:"Bósnia",flag:"🇧🇦"},{code:"QAT",name:"Catar",flag:"🇶🇦"},{code:"SUI",name:"Suíça",flag:"🇨🇭"}]},
+  {n:"C",countries:[{code:"BRA",name:"Brasil",flag:"🇧🇷"},{code:"MAR",name:"Marrocos",flag:"🇲🇦"},{code:"HAI",name:"Haiti",flag:"🇭🇹"},{code:"SCO",name:"Escócia",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿"}]},
+  {n:"D",countries:[{code:"USA",name:"Estados Unidos",flag:"🇺🇸"},{code:"PAR",name:"Paraguai",flag:"🇵🇾"},{code:"AUS",name:"Austrália",flag:"🇦🇺"},{code:"TUR",name:"Turquia",flag:"🇹🇷"}]},
+  {n:"E",countries:[{code:"GER",name:"Alemanha",flag:"🇩🇪"},{code:"CUW",name:"Curaçao",flag:"🇨🇼"},{code:"CIV",name:"Costa do Marfim",flag:"🇨🇮"},{code:"ECU",name:"Equador",flag:"🇪🇨"}]},
+  {n:"F",countries:[{code:"NED",name:"Holanda",flag:"🇳🇱"},{code:"JPN",name:"Japão",flag:"🇯🇵"},{code:"SWE",name:"Suécia",flag:"🇸🇪"},{code:"TUN",name:"Tunísia",flag:"🇹🇳"}]},
+  {n:"G",countries:[{code:"BEL",name:"Bélgica",flag:"🇧🇪"},{code:"EGY",name:"Egito",flag:"🇪🇬"},{code:"IRN",name:"Irã",flag:"🇮🇷"},{code:"NZL",name:"Nova Zelândia",flag:"🇳🇿"}]},
+  {n:"H",countries:[{code:"ESP",name:"Espanha",flag:"🇪🇸"},{code:"CPV",name:"Cabo Verde",flag:"🇨🇻"},{code:"KSA",name:"Arábia Saudita",flag:"🇸🇦"},{code:"URU",name:"Uruguai",flag:"🇺🇾"}]},
+  {n:"I",countries:[{code:"FRA",name:"França",flag:"🇫🇷"},{code:"SEN",name:"Senegal",flag:"🇸🇳"},{code:"IRQ",name:"Iraque",flag:"🇮🇶"},{code:"NOR",name:"Noruega",flag:"🇳🇴"}]},
+  {n:"J",countries:[{code:"ARG",name:"Argentina",flag:"🇦🇷"},{code:"ALG",name:"Argélia",flag:"🇩🇿"},{code:"AUT",name:"Áustria",flag:"🇦🇹"},{code:"JOR",name:"Jordânia",flag:"🇯🇴"}]},
+  {n:"K",countries:[{code:"POR",name:"Portugal",flag:"🇵🇹"},{code:"COD",name:"Congo",flag:"🇨🇩"},{code:"UZB",name:"Uzbequistão",flag:"🇺🇿"},{code:"COL",name:"Colômbia",flag:"🇨🇴"}]},
+  {n:"L",countries:[{code:"ENG",name:"Inglaterra",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿"},{code:"CRO",name:"Croácia",flag:"🇭🇷"},{code:"GHA",name:"Gana",flag:"🇬🇭"},{code:"PAN",name:"Panamá",flag:"🇵🇦"}]},
+];
+const SPECIAL = [
+  {code:"FWC",name:"FIFA World Cup History",flag:"🏆",nums:["9","10","11","12","13","14","15","16","17","18","19"]},
+  {code:"CC",name:"Coca-Cola",flag:"🥤",nums:["1","2","3","4","5","6","7","8","9","10","11","12","13","14"]},
+];
+const C_NUMS = ["00","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20"];
+const ALL_COUNTRIES = GROUPS.flatMap(g => g.countries.map(c => ({...c,group:g.n})));
+const INFO_MAP = {};
+ALL_COUNTRIES.forEach(c => { INFO_MAP[c.code] = c; });
+SPECIAL.forEach(s => { INFO_MAP[s.code] = s; });
+
+const VALID = new Set();
+ALL_COUNTRIES.forEach(c => C_NUMS.forEach(n => VALID.add(c.code+n)));
+SPECIAL.forEach(s => s.nums.forEach(n => VALID.add(s.code+n)));
+const TOTAL = 1033;
+
+// ─── STATE ──────────────────────────────────────────────────────
+let collection = {};
+let activeTab = 'album';
+let toastTimer = null;
+let editMode = false;
+let editSelection = new Set();
+let activityLog = []; // [{code, ts}]
+const LOG_MAX = 10;
+const LOG_KEY = 'copa2026-figurinhas-log-v1';
+
+// Chave estável para o armazenamento local.
+// Mantive a chave antiga como LEGACY_KEY para não perder dados caso você já tenha usado a versão anterior.
+const STORAGE_KEY = 'copa2026-figurinhas-v1';
+const LEGACY_KEY = 'copa2026';
+
+function storageAvailable() {
+  try {
+    const testKey = '__copa2026_storage_test__';
+    localStorage.setItem(testKey, '1');
+    localStorage.removeItem(testKey);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function loadData() {
+  if (!storageAvailable()) {
+    collection = {};
+    activityLog = [];
+    setTimeout(() => showToast('err', 'Este navegador não está permitindo localStorage. Desative modo privado/bloqueios ou use Importar/Backup.'), 300);
+    return;
+  }
+
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_KEY) || '{}';
+    const parsed = JSON.parse(raw);
+    collection = parsed && typeof parsed === 'object' ? parsed : {};
+
+    if (!localStorage.getItem(STORAGE_KEY) && localStorage.getItem(LEGACY_KEY)) {
+      saveData();
+    }
+  } catch (e) {
+    collection = {};
+    showToast('err', 'Não consegui ler os dados salvos. Faça um backup/importação se necessário.');
+  }
+
+  // Carrega log
+  try {
+    const rawLog = localStorage.getItem(LOG_KEY) || '[]';
+    const parsedLog = JSON.parse(rawLog);
+    activityLog = Array.isArray(parsedLog) ? parsedLog.slice(0, LOG_MAX) : [];
+  } catch (e) {
+    activityLog = [];
+  }
+}
+
+function saveData() {
+  if (!storageAvailable()) return false;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(collection));
+    localStorage.setItem(LEGACY_KEY, JSON.stringify(collection));
+    localStorage.setItem(LOG_KEY, JSON.stringify(activityLog));
+    return true;
+  } catch (e) {
+    showToast('err', 'Não consegui salvar no navegador. Exporte um backup para não perder seus dados.');
+    return false;
+  }
+}
+loadData();
+
+// ─── UTILS ──────────────────────────────────────────────────────
+function parseCode(raw) {
+  const s = raw.trim().toUpperCase().replace(/[\s_\-]+/g,'');
+  return VALID.has(s) ? s : null;
+}
+function calcStats(code, nums) {
+  const total = nums.length;
+  const collected = nums.filter(n => (collection[code+n]||0) >= 1).length;
+  const dups = nums.reduce((s,n) => s + Math.max(0,(collection[code+n]||0)-1), 0);
+  const missing = nums.filter(n => !(collection[code+n]||0));
+  return {total, collected, dups, missing};
+}
+function globalStats() {
+  const col = Object.values(collection).filter(v=>v>=1).length;
+  const dup = Object.values(collection).reduce((s,v)=>s+Math.max(0,v-1),0);
+  return {col, dup, miss: TOTAL-col, pct: Math.round(col/TOTAL*100)};
+}
+
+// ─── TOAST ──────────────────────────────────────────────────────
+function showToast(type, msg) {
+  clearTimeout(toastTimer);
+  const cls = {new:'toast-new',dup:'toast-dup',err:'toast-err'}[type]||'toast-err';
+  document.getElementById('toast-area').innerHTML =
+    `<div class="toast ${cls}">${msg}</div>`;
+  toastTimer = setTimeout(() => {
+    const el = document.getElementById('toast-area');
+    if (el) el.innerHTML = '';
+  }, 2800);
+}
+
+// ─── ACTIONS ────────────────────────────────────────────────────
+function addSticker() {
+  const inp = document.getElementById('sticker-input');
+  const raw = inp.value;
+  const code = parseCode(raw);
+  if (!code) {
+    showToast('err', `"${raw.toUpperCase()}" não é válida. Ex: BRA1, MEX00, FWC9, CC3`);
+    inp.focus(); return;
+  }
+  const n = collection[code] || 0;
+  collection[code] = n + 1;
+  pushLog(code);
+  saveData();
+  inp.value = '';
+  inp.focus();
+  n === 0
+    ? showToast('new', `✓ ${code} colada no álbum!`)
+    : showToast('dup', `⟳ ${code} repetida! (você tem ${n+1}×)`);
+  updateHeader();
+  renderContent();
+  // update modal if open
+  const mCode = document.querySelector('[data-modal-code]');
+  if (mCode) openModal(mCode.dataset.modalCode, JSON.parse(mCode.dataset.modalNums));
+}
+
+function removeOne(code) {
+  const n = collection[code] || 0;
+  if (!n) return;
+  if (n === 1) delete collection[code];
+  else collection[code] = n - 1;
+  saveData();
+  updateHeader();
+  renderContent();
+  // refresh modal if open
+  const mCode = document.querySelector('[data-modal-code]');
+  if (mCode) openModal(mCode.dataset.modalCode, JSON.parse(mCode.dataset.modalNums));
+}
+
+
+function exportData() {
+  try {
+    const payload = {
+      app: 'copa2026-figurinhas',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      collection
+    };
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0,10);
+    a.href = URL.createObjectURL(blob);
+    a.download = `copa2026-backup-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+    showToast('new', 'Backup exportado com sucesso!');
+  } catch (e) {
+    showToast('err', 'Não consegui exportar o backup.');
+  }
+}
+
+function importData(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      const importedCollection = parsed.collection || parsed;
+
+      if (!importedCollection || typeof importedCollection !== 'object' || Array.isArray(importedCollection)) {
+        throw new Error('Formato inválido');
+      }
+
+      // Mantém somente chaves válidas do álbum e quantidades inteiras positivas.
+      const cleaned = {};
+      Object.entries(importedCollection).forEach(([code, qty]) => {
+        const normalized = parseCode(code);
+        const n = Math.floor(Number(qty));
+        if (normalized && n > 0) cleaned[normalized] = n;
+      });
+
+      collection = cleaned;
+      saveData();
+      updateHeader();
+      renderContent();
+      closeModal();
+      showToast('new', `Backup importado! ${Object.keys(collection).length} figurinha(s) carregada(s).`);
+    } catch (err) {
+      showToast('err', 'Arquivo de backup inválido. Use um JSON exportado pelo próprio app.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+
+function showResetDialog() {
+  document.getElementById('modal-area').innerHTML = `
+    <div class="dialog-bg" onclick="closeModal()">
+      <div class="dialog-box" onclick="event.stopPropagation()">
+        <div class="dialog-icon">⚠️</div>
+        <div class="dialog-title">Resetar álbum?</div>
+        <div class="dialog-text">Todos os dados serão apagados permanentemente. Não há como desfazer.</div>
+        <div class="dialog-btns">
+          <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+          <button class="btn-danger" onclick="resetAll()">Resetar tudo</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function resetAll() {
+  collection = {};
+  activityLog = [];
+  saveData();
+  closeModal();
+  showToast('err', 'Álbum resetado! Começando do zero.');
+  updateHeader();
+  renderContent();
+}
+
+function closeModal() {
+  document.getElementById('modal-area').innerHTML = '';
+}
+
+// ─── EDIT MODE ─────────────────────────────────────────────────
+function startEditMode() {
+  editMode = true;
+  editSelection.clear();
+  renderContent();
+}
+
+function cancelEditMode() {
+  editMode = false;
+  editSelection.clear();
+  renderContent();
+  closeModal();
+}
+
+function toggleEditPick(code) {
+  if (!editMode) return;
+  if (editSelection.has(code)) editSelection.delete(code);
+  else editSelection.add(code);
+  // Re-renderiza só o que mudou (lista de faltantes + modal se aberto)
+  renderContent();
+  const mCode = document.querySelector('[data-modal-code]');
+  if (mCode) openModal(mCode.dataset.modalCode, JSON.parse(mCode.dataset.modalNums));
+  updateEditBar();
+}
+
+function saveEditMode() {
+  if (!editSelection.size) {
+    showToast('err', 'Nenhuma figurinha selecionada.');
+    return;
+  }
+  const added = [];
+  editSelection.forEach(code => {
+    const prev = collection[code] || 0;
+    collection[code] = prev + 1;
+    added.push({code, ts: Date.now(), wasNew: prev === 0});
+    pushLog(code);
+  });
+  saveData();
+  const count = editSelection.size;
+  editMode = false;
+  editSelection.clear();
+  closeModal();
+  updateHeader();
+  renderContent();
+  showToast('new', `✓ ${count} figurinha(s) adicionada(s) ao álbum!`);
+}
+
+function updateEditBar() {
+  const bar = document.getElementById('edit-bar');
+  if (!bar) return;
+  const n = editSelection.size;
+  bar.querySelector('.edit-bar-count').textContent = n;
+  bar.querySelector('.edit-bar-save').disabled = n === 0;
+}
+
+
+function buildMissingText() {
+  const lines = [];
+  const {miss, col, pct} = globalStats();
+  lines.push('🔍 FIGURINHAS QUE PRECISO — Copa 2026');
+  lines.push(`📊 Tenho ${col}/${TOTAL} (${pct}%) · faltam ${miss}`);
+  lines.push('');
+
+  GROUPS.forEach(g => {
+    const groupLines = [];
+    g.countries.forEach(c => {
+      const missing = C_NUMS.filter(n => !(collection[c.code+n]||0));
+      if (missing.length) {
+        groupLines.push(`${c.flag} ${c.name}: ${missing.map(n=>c.code+n).join(', ')}`);
+      }
+    });
+    if (groupLines.length) {
+      lines.push(`━━ GRUPO ${g.n} ━━`);
+      lines.push(...groupLines);
+      lines.push('');
+    }
+  });
+
+  const specialLines = [];
+  SPECIAL.forEach(s => {
+    const missing = s.nums.filter(n => !(collection[s.code+n]||0));
+    if (missing.length) {
+      specialLines.push(`${s.flag} ${s.name}: ${missing.map(n=>s.code+n).join(', ')}`);
+    }
+  });
+  if (specialLines.length) {
+    lines.push('━━ ESPECIAIS ━━');
+    lines.push(...specialLines);
+    lines.push('');
+  }
+
+  if (miss === 0) {
+    return '🏆 ÁLBUM COMPLETO! Não falta nenhuma figurinha.';
+  }
+  return lines.join('\n').trim();
+}
+
+function buildDupsText() {
+  const dups = Object.entries(collection)
+    .filter(([,v]) => v >= 2)
+    .map(([code, v]) => ({code, extra: v-1, prefix: code.replace(/\d/g,'')}));
+
+  if (!dups.length) return '📦 Não tenho nenhuma figurinha repetida no momento.';
+
+  const totalExtra = dups.reduce((s,d)=>s+d.extra,0);
+  const lines = [];
+  lines.push('🔄 FIGURINHAS REPETIDAS PRA TROCA — Copa 2026');
+  lines.push(`📦 Tenho ${totalExtra} repetida(s) disponível(is)`);
+  lines.push('');
+
+  // Agrupa por país/seção e ordena na ordem dos grupos
+  const byPrefix = {};
+  dups.forEach(d => {
+    if (!byPrefix[d.prefix]) byPrefix[d.prefix] = [];
+    byPrefix[d.prefix].push(d);
+  });
+
+  const orderedPrefixes = [];
+  GROUPS.forEach(g => g.countries.forEach(c => {
+    if (byPrefix[c.code]) orderedPrefixes.push({prefix: c.code, info: c, group: g.n});
+  }));
+  SPECIAL.forEach(s => {
+    if (byPrefix[s.code]) orderedPrefixes.push({prefix: s.code, info: s, group: 'ESP'});
+  });
+
+  let lastGroup = null;
+  orderedPrefixes.forEach(({prefix, info, group}) => {
+    if (group !== lastGroup) {
+      const label = group === 'ESP' ? '━━ ESPECIAIS ━━' : `━━ GRUPO ${group} ━━`;
+      lines.push(label);
+      lastGroup = group;
+    }
+    const items = byPrefix[prefix]
+      .sort((a,b) => {
+        const na = parseInt(a.code.replace(/\D/g,''),10);
+        const nb = parseInt(b.code.replace(/\D/g,''),10);
+        return na - nb;
+      })
+      .map(d => d.extra > 1 ? `${d.code} (×${d.extra})` : d.code);
+    lines.push(`${info.flag} ${info.name}: ${items.join(', ')}`);
+  });
+
+  return lines.join('\n').trim();
+}
+
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (e) {
+    // Fallback antigo
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+}
+
+async function shareText(text, title) {
+  if (navigator.share) {
+    try {
+      await navigator.share({title, text});
+      return 'shared';
+    } catch (e) {
+      if (e.name === 'AbortError') return 'cancelled';
+      // continua para fallback
+    }
+  }
+  const ok = await copyToClipboard(text);
+  return ok ? 'copied' : 'failed';
+}
+
+function openShareModal(kind) {
+  const text = kind === 'missing' ? buildMissingText() : buildDupsText();
+  const title = kind === 'missing' ? 'Figurinhas que preciso' : 'Figurinhas pra troca';
+  const hasNativeShare = !!navigator.share;
+
+  document.getElementById('modal-area').innerHTML = `
+    <div class="modal-bg" onclick="closeModal()">
+      <div class="modal-box" onclick="event.stopPropagation()" style="max-width:520px">
+        <div class="modal-header">
+          <div class="modal-info">
+            <span class="modal-flag">${kind==='missing'?'🔍':'🔄'}</span>
+            <div>
+              <div class="modal-name">${title}</div>
+              <div class="modal-sub">Copie o texto ou compartilhe direto</div>
+            </div>
+          </div>
+          <button class="btn-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="share-preview" id="share-preview-text">${escapeHTML(text)}</div>
+        <div class="share-actions">
+          <button class="btn-share primary" onclick="doShareAction('${kind}','copy')">📋 Copiar</button>
+          ${hasNativeShare?`<button class="btn-share primary" onclick="doShareAction('${kind}','share')">💬 Compartilhar</button>`:''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function escapeHTML(s) {
+  return s.replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+async function doShareAction(kind, action) {
+  const text = kind === 'missing' ? buildMissingText() : buildDupsText();
+  const title = kind === 'missing' ? 'Figurinhas que preciso — Copa 2026' : 'Figurinhas pra troca — Copa 2026';
+  if (action === 'copy') {
+    const ok = await copyToClipboard(text);
+    showToast(ok?'new':'err', ok?'Texto copiado para a área de transferência!':'Não consegui copiar. Selecione o texto manualmente.');
+  } else {
+    const result = await shareText(text, title);
+    if (result === 'copied') showToast('new', 'Compartilhamento não disponível — texto copiado!');
+    else if (result === 'failed') showToast('err', 'Não foi possível compartilhar.');
+    // shared/cancelled: nenhum toast
+  }
+}
+
+// ─── ACTIVITY LOG ──────────────────────────────────────────────
+function pushLog(code) {
+  activityLog.unshift({code, ts: Date.now()});
+  if (activityLog.length > LOG_MAX) activityLog.length = LOG_MAX;
+}
+
+function undoLogEntry(idx) {
+  const entry = activityLog[idx];
+  if (!entry) return;
+  const n = collection[entry.code] || 0;
+  if (n === 0) {
+    activityLog.splice(idx, 1);
+    saveData();
+    renderContent();
+    showToast('err', `${entry.code} já não está no álbum — removido do histórico.`);
+    return;
+  }
+  if (n === 1) delete collection[entry.code];
+  else collection[entry.code] = n - 1;
+  activityLog.splice(idx, 1);
+  saveData();
+  updateHeader();
+  renderContent();
+  showToast('dup', `↶ Desfeito: ${entry.code} (−1 do álbum)`);
+}
+
+function formatLogTime(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay) return time;
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${time}`;
+}
+
+function renderLog() {
+  if (!activityLog.length) return `<div class="empty-state">
+    <div class="empty-icon">📜</div>
+    <div class="empty-title">Nenhuma figurinha adicionada ainda</div>
+    <div class="empty-sub">As últimas ${LOG_MAX} figurinhas que você adicionar aparecerão aqui</div>
+  </div>`;
+  return `<div class="log-header">Últimas <strong style="color:#e8f0fe">${activityLog.length}</strong> figurinha(s) adicionada(s) · <span style="color:#7090b0">clique em ↶ para desfazer</span></div>
+  <div class="log-list">
+    ${activityLog.map((entry, idx) => `
+      <div class="log-item">
+        <span class="log-code">${entry.code}</span>
+        <span class="log-time">${formatLogTime(entry.ts)}</span>
+        <button class="log-undo" onclick="undoLogEntry(${idx})" title="Desfazer">↶</button>
+      </div>`).join('')}
+  </div>`;
+}
+
+// ─── HEADER ─────────────────────────────────────────────────────
+function updateHeader() {
+  const {col, dup, miss, pct} = globalStats();
+  document.getElementById('hdr-count').textContent = `${col} / ${TOTAL} figurinhas`;
+  document.getElementById('hdr-pct').textContent = `${pct}% completo`;
+  document.getElementById('hdr-pct').style.color = pct === 100 ? '#00e676' : '#7090b0';
+  document.getElementById('main-bar').style.width = pct + '%';
+  document.getElementById('stat-col').textContent = `✓ ${col} coletadas`;
+  document.getElementById('stat-miss').textContent = `✕ ${miss} faltando`;
+  document.getElementById('stat-dup').textContent = `⟳ ${dup} repetidas`;
+}
+
+// ─── TABS ───────────────────────────────────────────────────────
+function setTab(tab) {
+  // Se sair de Faltantes em modo edição, descarta seleção
+  if (editMode && tab !== 'faltantes') {
+    editMode = false;
+    editSelection.clear();
+  }
+  activeTab = tab;
+  ['album','faltantes','repetidas','log'].forEach(t => {
+    const btn = document.getElementById('tab-'+t);
+    if (btn) btn.classList.toggle('active', t===tab);
+  });
+  renderContent();
+}
+
+// ─── RENDER ─────────────────────────────────────────────────────
+function chipHTML(id, count) {
+  const num = id.replace(/^[A-Z]+/,'');
+  // Em modo edição, chips faltantes ficam selecionáveis
+  if (editMode && count === 0) {
+    const picked = editSelection.has(id);
+    const cls = picked ? 'chip-picked' : 'chip-missing chip-pickable';
+    return `<div class="chip ${cls}" onclick="toggleEditPick('${id}')">${picked?'✓':num}</div>`;
+  }
+  const cls = count===0 ? 'chip-missing' : count===1 ? 'chip-collected' : 'chip-dup';
+  const clickAttr = count>=2 ? `onclick="removeOne('${id}')" title="${count}× — clique para −1"` : '';
+  const badge = count>=2 ? `<div class="chip-badge">${count}</div>` : '';
+  return `<div class="chip ${cls}" ${clickAttr}>${num}${badge}</div>`;
+}
+
+function countryCardHTML(info, nums) {
+  const s = calcStats(info.code, nums);
+  const pct = Math.round(s.collected/s.total*100);
+  const full = pct===100;
+  const numsJSON = JSON.stringify(nums);
+  return `<div class="country-card${full?' complete':''}" onclick="openModal('${info.code}',${numsJSON})">
+    <span class="card-flag">${info.flag}</span>
+    <div class="card-info">
+      <div class="card-name">${info.name}</div>
+      <div class="mini-bar"><div class="mini-fill${full?' full':''}" style="width:${pct}%"></div></div>
+      <div class="card-meta">
+        <span>${s.collected}/${s.total}</span>
+        ${s.dups>0?`<span class="meta-gold">+${s.dups}↺</span>`:''}
+        ${s.missing.length>0&&!full?`<span class="meta-red">${s.missing.length} faltam</span>`:''}
+      </div>
+    </div>
+    ${full?'<span class="card-check">✓</span>':''}
+  </div>`;
+}
+
+function openModal(code, nums) {
+  const info = INFO_MAP[code];
+  const s = calcStats(code, nums);
+  const pct = Math.round(s.collected/s.total*100);
+  const numsJSON = JSON.stringify(nums);
+  const missingStr = s.missing.map(n=>code+n).join(', ');
+  const dupItems = nums.filter(n=>(collection[code+n]||0)>=2).map(n=>`${code}${n}×${collection[code+n]}`).join(', ');
+
+  document.getElementById('modal-area').innerHTML = `
+    <div class="modal-bg" onclick="closeModal()">
+      <div class="modal-box" onclick="event.stopPropagation()" data-modal-code="${code}" data-modal-nums='${numsJSON}'>
+        <div class="modal-header">
+          <div class="modal-info">
+            <span class="modal-flag">${info.flag}</span>
+            <div>
+              <div class="modal-name">${info.name}</div>
+              <div class="modal-sub">${s.collected}/${s.total} coletadas${s.dups>0?` · <span style="color:#ffd700">${s.dups} repetida(s)</span>`:''}</div>
+            </div>
+          </div>
+          <button class="btn-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <div class="chip-hint">🟢 Coletada &nbsp;·&nbsp; 🟡 Repetida (clique para −1) &nbsp;·&nbsp; ⬛ Faltando</div>
+        <div class="chips-grid">
+          ${nums.map(n=>chipHTML(code+n, collection[code+n]||0)).join('')}
+        </div>
+        ${s.missing.length>0?`
+        <div class="modal-missing" style="margin-top:14px;padding:10px;background:#07111f;border-radius:8px">
+          <span class="modal-missing-label">Faltam (${s.missing.length}): </span>
+          <span class="modal-missing-codes">${missingStr}</span>
+        </div>`:''}
+        ${s.dups>0?`
+        <div class="modal-dups" style="margin-top:8px;padding:10px;background:#1f1400;border-radius:8px">
+          <span class="modal-dups-label">Repetidas: </span>
+          <span class="modal-dups-codes">${dupItems}</span>
+        </div>`:''}
+      </div>
+    </div>`;
+}
+
+function renderAlbum() {
+  let html = '';
+  GROUPS.forEach(g => {
+    const groupTotal = g.countries.reduce((s,c)=>s+calcStats(c.code,C_NUMS).collected,0);
+    html += `<div class="group-wrap">
+      <div class="group-header">
+        <span class="group-badge">GRUPO ${g.n}</span>
+        <span class="group-count">${groupTotal} / ${g.countries.length*21} figurinhas</span>
+      </div>
+      <div class="cards-grid">${g.countries.map(c=>countryCardHTML(c,C_NUMS)).join('')}</div>
+    </div>`;
+  });
+  html += `<div class="group-wrap">
+    <div class="group-header">
+      <span class="group-badge" style="background:#2a2a0a;color:#aaaa30">ESPECIAIS</span>
+    </div>
+    <div class="cards-grid">${SPECIAL.map(s=>countryCardHTML(s,s.nums)).join('')}</div>
+  </div>`;
+  return html;
+}
+
+function renderFaltantes() {
+  const items = [];
+  ALL_COUNTRIES.forEach(c => {
+    const m = C_NUMS.filter(n=>!(collection[c.code+n]||0));
+    if (m.length) items.push({...c, missing:m, nums:C_NUMS});
+  });
+  SPECIAL.forEach(s => {
+    const m = s.nums.filter(n=>!(collection[s.code+n]||0));
+    if (m.length) items.push({...s, missing:m, nums:s.nums});
+  });
+  if (!items.length) return `<div class="empty-state">
+    <div class="empty-icon">🏆</div>
+    <div class="empty-title" style="color:#00e676;font-weight:800;font-size:20px">Álbum completo!</div>
+    <div class="empty-sub">Parabéns, você colou todas as ${TOTAL} figurinhas!</div>
+  </div>`;
+  const {miss} = globalStats();
+
+  const topBar = editMode
+    ? `<div class="share-bar">
+        <button class="btn-share" onclick="cancelEditMode()" style="border-color:#5a4a4a;color:#ff9090">✕ Cancelar edição</button>
+        <div class="edit-hint">Toque nas figurinhas que você conseguiu</div>
+      </div>`
+    : `<div class="share-bar">
+        <button class="btn-share" onclick="openShareModal('missing')">📤 Compartilhar lista</button>
+        <button class="btn-share" onclick="startEditMode()">✏️ Editar (adicionar várias)</button>
+      </div>`;
+
+  const list = items.map(item => {
+    const numsJSON = JSON.stringify(item.nums);
+    const clickHandler = editMode ? '' : `onclick="openModal('${item.code}',${numsJSON})"`;
+    return `<div class="missing-item" ${clickHandler}>
+      <div class="missing-header">
+        <span class="missing-flag">${item.flag}</span>
+        <span class="missing-name">${item.name}</span>
+        <span class="missing-count">${item.missing.length} faltam</span>
+      </div>
+      <div class="missing-chips">
+        ${item.missing.map(n => {
+          const code = item.code+n;
+          if (editMode) {
+            const picked = editSelection.has(code);
+            return `<span class="missing-chip ${picked?'picked':''}" onclick="event.stopPropagation();toggleEditPick('${code}')">${picked?'✓ ':''}${code}</span>`;
+          }
+          return `<span class="missing-chip">${code}</span>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `${topBar}
+    <div class="missing-section-header"><span>${miss}</span> figurinha(s) faltando em <strong style="color:#e8f0fe">${items.length}</strong> países/seções</div>
+    ${list}
+    ${editMode ? `<div class="edit-bar" id="edit-bar">
+      <div class="edit-bar-info"><span class="edit-bar-count">${editSelection.size}</span> selecionada(s)</div>
+      <button class="edit-bar-cancel" onclick="cancelEditMode()">Cancelar</button>
+      <button class="edit-bar-save" onclick="saveEditMode()" ${editSelection.size===0?'disabled':''}>✓ Salvar</button>
+    </div>` : ''}`;
+}
+
+function renderRepetidas() {
+  // Agrupa as repetidas por prefixo (código do país/seção)
+  const byPrefix = {};
+  Object.entries(collection).forEach(([code, count]) => {
+    if (count < 2) return;
+    const prefix = code.replace(/\d/g,'');
+    if (!byPrefix[prefix]) byPrefix[prefix] = [];
+    byPrefix[prefix].push([code, count]);
+  });
+
+  // Monta a lista de itens na ordem dos grupos
+  const items = [];
+  ALL_COUNTRIES.forEach(c => {
+    if (byPrefix[c.code]) items.push({info: c, codes: byPrefix[c.code], nums: C_NUMS});
+  });
+  SPECIAL.forEach(s => {
+    if (byPrefix[s.code]) items.push({info: s, codes: byPrefix[s.code], nums: s.nums});
+  });
+
+  if (!items.length) return `<div class="empty-state">
+    <div class="empty-icon">📦</div>
+    <div class="empty-title">Nenhuma figurinha repetida ainda</div>
+    <div class="empty-sub">Adicione figurinhas que já tem para vê-las aqui</div>
+  </div>`;
+
+  const {dup} = globalStats();
+  return `<div class="share-bar">
+    <button class="btn-share" onclick="openShareModal('dups')">📤 Compartilhar lista pra troca</button>
+  </div>
+  <div class="rep-header"><span>${dup}</span> figurinha(s) para troca em <strong style="color:#e8f0fe">${items.length}</strong> países/seções</div>`
+  + items.map(item => {
+    // Ordena as repetidas pelo número
+    const sorted = item.codes.sort((a,b) => {
+      const na = parseInt(a[0].replace(/\D/g,''),10);
+      const nb = parseInt(b[0].replace(/\D/g,''),10);
+      return na - nb;
+    });
+    const totalExtra = sorted.reduce((s,[,c]) => s + (c-1), 0);
+    const numsJSON = JSON.stringify(item.nums);
+    return `<div class="dup-country">
+      <div class="dup-country-header" onclick="openModal('${item.info.code}',${numsJSON})">
+        <span class="dup-flag">${item.info.flag}</span>
+        <span class="dup-name">${item.info.name}</span>
+        <span class="dup-country-count">${totalExtra} pra troca</span>
+      </div>
+      <div class="dup-wrap">
+        ${sorted.map(([code,count])=>`
+          <div class="dup-item">
+            <span class="dup-code">${code}</span>
+            <span class="dup-badge">×${count}</span>
+            <button class="btn-minus" onclick="removeOne('${code}')" title="Remover 1">−</button>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderContent() {
+  const el = document.getElementById('content');
+  if (activeTab==='album') el.innerHTML = renderAlbum();
+  else if (activeTab==='faltantes') el.innerHTML = renderFaltantes();
+  else if (activeTab==='log') el.innerHTML = renderLog();
+  else el.innerHTML = renderRepetidas();
+  // Aplica/remove classe de modo edição
+  document.getElementById('app').classList.toggle('editing', editMode && activeTab==='faltantes');
+}
+
+// ─── INIT ───────────────────────────────────────────────────────
+updateHeader();
+renderContent();
+document.getElementById('sticker-input').focus();
+</script>
+</body>
+</html>
